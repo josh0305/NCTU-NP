@@ -1,0 +1,36 @@
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+int counter = 0, timer = 0, guar;
+
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct data{
+    int arrive;
+    int con_round;
+    int rest_time;
+    int tal_round;
+}
+
+void    *user(void *arg)
+{
+    int *input = (int *)arg
+}
+
+int main()
+{
+    int num;
+    pthread_t t[99999];
+    scanf("%d %d", &guar, &num);
+
+    int i;
+    for(i = 0; i < num; i++)
+    {
+        int input[4];
+        scanf("%d %d %d %d", input[0], input[1], input[2], input[3]);
+        pthread_create(t+i, NULL, user, (void*) input)
+
+    }
+    return 0;
+}

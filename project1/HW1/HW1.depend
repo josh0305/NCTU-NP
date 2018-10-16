@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1538276384 source:c:\users\j6070\onedrive\桌面\網程設\project1\hw1\main.cpp
+	<bits/stdc++.h>
+	<semaphore.h>
+	<pthread.h>
+	<unistd.h>
+

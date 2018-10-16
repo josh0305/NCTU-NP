@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1537796065 source:c:\users\j6070\onedrive\桌面\網程設\project1\p1\main.c
+	<stdio.h>
+	<pthread.h>
+	<unistd.h>
+
