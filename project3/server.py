@@ -333,6 +333,7 @@ while True:
 			response['message'] = "Usage: receive-post​ <user>"
 
 	else:
+		response['status'] = 1
 		response['message'] = "Unknown command " + frag[0]
 	
 	try:

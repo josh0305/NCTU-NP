@@ -2,7 +2,15 @@ import socket
 import json
 import sys
 
+import stomp
+import time
+
+class MyListener(object):
+	def on_message(self, heades,msg):
+		print(msg)
+
 user_token = {}
+user_conn = {}
 
 def replace(userid):
 	s = cmd_token
@@ -32,7 +40,7 @@ while(1):
 	cmd_token = cmd.split()
 
 	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	client.connect((host, port))
+	client.connect((host, int(port)))
 
 
 	if(cmd_token[0] == 'register'):
@@ -43,13 +51,27 @@ while(1):
 		res = cli_send_rec(client, cmd)
 		if(res['status'] == 0):
 			user_token[cmd_token[1]] = res['token']
+			
+			conn = stomp.Connction10()
+			conn.set_listener('MyListener', MyListener)
+			conn.start()
+			conn.connect()
+			conn.subscribe('/queue/'+cmd_token[1])
+			user_conn[cmd_token[1]] = conn	
+
 		print(res['message'])
 
+		
 	elif(cmd_token[0] == 'delete'):
 		cmd = replace(cmd_token[1])
 		res = cli_send_rec(client, cmd)
 		if(res['status'] == 0):
 			delete_token(cmd_token[1])
+
+			user_conn[cmd_token[1]].disconnect()
+			if(cmd_token[1] in user_conn):
+				del user_conn[cmd_token[1]]
+
 		print(res['message'])
 
 	elif(cmd_token[0] == 'logout'):
@@ -57,7 +79,14 @@ while(1):
 		res = cli_send_rec(client, cmd)
 		if(res['status'] == 0):
 			delete_token(cmd_token[1])
+
+			user_conn[cmd_token[1]].disconnect()
+			if(cmd_token[1] in user_conn):
+				del user_conn[cmd_token[1]]
+
 		print(res['message'])
+
+
 
 	elif(cmd_token[0] == 'invite'):
 		cmd = replace(cmd_token[1])
@@ -109,6 +138,12 @@ while(1):
 					print(i['id'] + ': ' + i['message'])
 		else:
 			print(res['message'])
+
+	elif(cmd_token[0] == 'send'):
+		cmd = replace(cmd_token[1])
+		res = cli_send_rec(client, cmd)
+		print(res['message'])
+
 
 	else:
 		print('Have no this command')
