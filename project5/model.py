@@ -1,7 +1,8 @@
 from peewee import *
-
-
-db = MySQLDatabase('database.db', host = 'database.cymvcbjs4roc.us-west-2.rds.amazonaws.com', port = 3306, user = 'joshua', password = 'j28ck98mom)
+hostname = "your hostname"
+username = "your username"
+password = "your password"
+db = MySQLDatabase('database name', host = hostname, port = 3306, user = username, passwd = password)
 
 
 class BaseModel(Model):
@@ -15,13 +16,13 @@ class User(BaseModel):
 
 
 class Invitation(BaseModel):
-    inviter = ForeignKeyField(User, on_delete='CASCADE')
-    invitee = ForeignKeyField(User, on_delete='CASCADE')
+    inviter = ForeignKeyField(User, on_delete='CASCADE', related_name = 'inviter')
+    invitee = ForeignKeyField(User, on_delete='CASCADE', related_name = 'invitee')
 
 
 class Friend(BaseModel):
-    user = ForeignKeyField(User, on_delete='CASCADE')
-    friend = ForeignKeyField(User, on_delete='CASCADE')
+    user = ForeignKeyField(User, on_delete='CASCADE', related_name = 'user')
+    friend = ForeignKeyField(User, on_delete='CASCADE', related_name = 'friend')
 
 
 class Post(BaseModel):
@@ -41,8 +42,8 @@ class Group(BaseModel):
 
 
 class GroupMember(BaseModel):
-    group = ForeignKeyField(Group, on_delete='CASCADE')
-    member = ForeignKeyField(User, on_delete='CASCADE')
+    group = ForeignKeyField(Group, on_delete='CASCADE',  related_name = 'group')
+    member = ForeignKeyField(User, on_delete='CASCADE',  related_name = 'member')
 
 
 if __name__ == '__main__':

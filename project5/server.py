@@ -62,6 +62,16 @@ class DBControl(object):
                 'status': 1,
                 'message': 'Usage: delete <user>'
             }
+        dns = self.user_ser[token.owner.username]
+        if self.ser_usercount[dns] <= 1:
+            del self.ser_usercount[dns]
+            mid = self.ser_machine[dns]
+            ec2clt = boto3.client('ec2', region_name = 'us-west-2')
+            ec2clt.terminate_instances(InstanceIds = [mid])
+            del self.ser_machine[dns]
+        else:
+            self.ser_usercount[dns] -= 1
+        del self.user_ser[token.owner.username]
         token.owner.delete_instance()
         return {
             'status': 0,
@@ -93,36 +103,45 @@ class DBControl(object):
                     'channel': i.group.channel
                 })
 
-			ser_avail = False
-			for appip, count in self.ser_usercount.items():
-				if count < 10:
-					ser_avail = True
-					break
-
-			if ser_avail:
-				dns = appip
-				self.ser_usercount[appip] += 1
-				slef.user_ser[username] = dns
-			else:
-				ec2rsc = boto3.resource('ec2', region_name = 'us-west-2a')
-				init_data = '''#!/bin/bash initial.sh'''
-				result = ec2rsc.create_instances(ImageId = 'i-06ba1f129a10a0b89', InstanceType = 't2.micro', MinCount = 1, MaxCount = 1, SecurityGroups = ['NP'], UserData = init_data, KeyName = 'NPHomework5'))
-				result[0].wait_until_running()
-				ec2clt = boto3.client('ec2', region_name = 'us-west-2a')
-				ec2clt.get_waiter('instance_status_ok').wait(InstanceIds = [result.instance_id])
-				collection = ec2rsc.instances.filter(InstanceIds = [result[0].instances_id])
-				for col in collection:
-					dns = col.public_ip_address
-				if dns:
+            ser_avail = False
+            for appip, count in self.ser_usercount.items():
+                if count < 10:
+                    ser_avail = True
+                    break
+            if username in self.user_ser:
+                dns = self.user_ser[username]
+            else:
+				if ser_avail:
+					dns = appip
+					self.ser_usercount[appip] += 1
 					self.user_ser[username] = dns
-					self.ser_usercount[dns] = 1
-					self.ser_machine[dns] = result[0].id
-
+				else:
+					ec2rsc = boto3.resource('ec2', region_name = 'us-west-2')
+					print('prepare init data')
+					init_data = '''#!/bin/bash
+sudo apt-get update
+sudo apt-get install -y python3-pip
+pip3 install peewee --upgrade
+python3 /home/ubuntu/np/ForHW/server.py 0.0.0.0 12345
+'''
+					print('ready to create instance')
+					result = ec2rsc.create_instances(ImageId = 'ami-0268f26fb80fd35a9', InstanceType = 't2.micro', MinCount = 1, MaxCount = 1, SecurityGroups = ['launch-wizard-2'], UserData = init_data, KeyName = 'NpKeyPair')
+					print('New instance created')
+					result[0].wait_until_running()
+					ec2clt = boto3.client('ec2', region_name = 'us-west-2')
+					ec2clt.get_waiter('instance_status_ok').wait(InstanceIds = [result[0].instance_id])
+					collection = ec2rsc.instances.filter(InstanceIds = [result[0].instance_id])
+					for col in collection:
+						dns = col.public_ip_address
+					if dns:
+						self.user_ser[username] = dns
+						self.ser_usercount[dns] = 1
+						self.ser_machine[dns] = result[0].id
             return {
                 'status': 0,
                 'token': t.token,
                 'channel': channels,
-				'Ipaddr' : dns,
+				'IPaddr' : dns,
                 'message': 'Success!'
             }
             
@@ -140,6 +159,16 @@ class DBControl(object):
                 'status': 1,
                 'message': 'Usage: logout <user>'
             }
+        dns = self.user_ser[token.owner.username]
+        if self.ser_usercount[dns] <= 1:
+            del self.ser_usercount[dns]
+            mid = self.ser_machine[dns]
+            ec2clt = boto3.client('ec2', region_name = 'us-west-2')
+            ec2clt.terminate_instances(InstanceIds = [mid])
+            del self.ser_machine[dns]
+        else:
+            self.ser_usercount[dns] -= 1
+        del self.user_ser[token.owner.username]
         token.delete_instance()
         return {
             'status': 0,
@@ -444,7 +473,7 @@ class DBControl(object):
 
 
 class Server(object):
-    def __init__(self, ip = 0.0.0.0, port = 12345):
+    def __init__(self, ip, port):
         try:
             socket.inet_aton(ip)
             if 0 < int(port) < 65535:

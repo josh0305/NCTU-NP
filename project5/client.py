@@ -25,11 +25,13 @@ class Client(object):
                 raise Exception('Port value should between 1~65535')
             self.cookie = {}
             self.group = {}
+            self.user_app = {}
+            self.nowdes = [self.ip, self.port]
         except Exception as e:
             print(e, file=sys.stderr)
             sys.exit(1)
         try:
-            self.mq = stomp.Connection([('140.113.207.51', 61613)])
+            self.mq = stomp.Connection([('34.222.23.216', 61613)])
             self.mq.set_listener('mq', MQListener())
             self.mq.start()
             self.mq.connect(wait=True)
@@ -44,7 +46,8 @@ class Client(object):
             if cmd != os.linesep:
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.connect((self.ip, self.port))
+                        self.__judge_server(cmd)
+                        s.connect((self.nowdes[0], self.nowdes[1]))
                         req = self.__attach_token(cmd)
                         s.send(req.encode())
                         resp = s.recv(4096).decode()
@@ -90,20 +93,23 @@ class Client(object):
                 if command[0] == 'login':
                     self.cookie[command[1]] = resp['token']
                     self.group[command[1]] = []
+                    self.user_app[command[1]] = resp['IPaddr']
                     for g in resp['channel']:
                         if g['type'] == 0:
                             self.mq.subscribe('/queue/' + g['channel'], command[1])
                         else:
                             self.mq.subscribe('/topic/' + g['channel'], g['name'] + command[1])
-                            self.group[command[1]].append(g['name'] + command[1])
+                            self.group[command[1]].append(g['name'] + command[1])	
                 elif command[0] == 'create-group' or command[0] == 'join-group':
-                    self.mq.subscribe('/topic/' + g['channel'], command[2] + command[1])
+                    self.mq.subscribe('/topic/' + resp['channel'], command[2] + command[1])
                     self.group[command[1]].append(command[2] + command[1])
                 elif command[0] == 'logout' or command[0] == 'delete':
                     self.mq.unsubscribe(command[1])
                     for g in self.group[command[1]]:
                         self.mq.unsubscribe(g)
                     del self.group[command[1]]
+                    del self.user_app[command[1]]
+                
 
     def __attach_token(self, cmd=None):
         if cmd:
@@ -118,6 +124,16 @@ class Client(object):
         else:
             return cmd
 
+    def __judge_server(self, cmd = None):
+        if cmd:
+            command = cmd.split()
+            login_list = ['register', 'login', 'logout', 'delete']
+            if command[0] not in self.cookie:
+            	self.nowdes = [self.ip, self.port]
+            elif command[0] in login_list or len(command) == 1:
+                self.nowdes = [self.ip, self.port]
+            else:
+                self.nowdes = [self.user_app[command[1]], 12345]
 
 def launch_client(ip, port):
     c = Client(ip, port)
